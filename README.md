@@ -1,36 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💪 PowerGym - Sistema de Gestión para Gimnasio
 
-## Getting Started
+Un sistema completo de gestión para gimnasios desarrollado con Next.js, TypeScript y Tailwind CSS.
 
-First, run the development server:
+## 🚀 Características
 
+### 📱 Página Principal (Landing Page)
+- **Diseño moderno y atractivo** con gradientes y animaciones
+- **Información del gimnasio** y servicios
+- **Planes de membresía** (Día, Semana, Mes)
+- **Formularios de contacto** y registro
+- **Diseño responsive** para móviles y desktop
+
+### ⚙️ Sistema Administrativo
+- **Dashboard principal** con estadísticas en tiempo real
+- **Gestión de usuarios** y membresías
+- **Punto de venta (POS)** para productos y suplementos
+- **Control de inventario** con alertas de stock
+- **Reportes de ventas** y análisis
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Next.js 15** - Framework de React
+- **TypeScript** - Tipado estático
+- **Tailwind CSS** - Framework de CSS
+- **React Hooks** - Gestión de estado
+- **LocalStorage** - Persistencia de datos
+
+## 📦 Instalación
+
+1. **Clona el repositorio:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/tu-usuario/powergym.git
+cd powergym
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Instala las dependencias:**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Ejecuta el proyecto:**
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Abre tu navegador:**
+```
+http://localhost:3000
+```
 
-## Learn More
+## 🎯 Funcionalidades del Sistema
 
-To learn more about Next.js, take a look at the following resources:
+### 👥 Gestión de Usuarios
+- Registro de miembros con información completa
+- Control de membresías (día/semana/mes)
+- Activación/desactivación de usuarios
+- Renovación de membresías
+- Búsqueda y filtros avanzados
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🛒 Punto de Venta
+- Catálogo de productos (agua, proteínas, suplementos)
+- Carrito de compras interactivo
+- Cálculo automático de totales con IVA (16%)
+- Control de stock en tiempo real
+- Registro de ventas con cliente opcional
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 📦 Control de Inventario
+- Gestión completa de productos
+- Alertas de stock bajo
+- Actualización de precios y stock
+- Categorización de productos
+- Estadísticas de inventario
 
-## Deploy on Vercel
+### 📊 Dashboard y Reportes
+- Estadísticas en tiempo real
+- Métricas de rendimiento
+- Historial de ventas
+- Análisis por período
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 Diseño
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Interfaz moderna** con gradientes y efectos visuales
+- **Diseño responsive** para todos los dispositivos
+- **Navegación intuitiva** entre módulos
+- **Modales interactivos** para formularios
+- **Alertas visuales** para notificaciones
+
+## 🔧 Estructura del Proyecto
+
+```
+appgym/
+├── app/                    # Páginas de Next.js
+│   ├── page.tsx           # Página principal
+│   ├── layout.tsx         # Layout global
+│   └── globals.css        # Estilos globales
+├── components/            # Componentes React
+│   ├── Hero.tsx          # Landing page
+│   ├── AdminSystem.tsx   # Sistema administrativo
+│   ├── AdminDashboard.tsx # Dashboard principal
+│   ├── UserManagement.tsx # Gestión de usuarios
+│   ├── PointOfSale.tsx   # Punto de venta
+│   └── InventoryManagement.tsx # Control de inventario
+├── public/               # Archivos estáticos
+└── package.json         # Dependencias del proyecto
+```
+
+## 🚀 Uso del Sistema
+
+### Para Clientes
+1. Visita la página principal
+2. Explora los planes de membresía
+3. Usa el formulario de contacto
+4. Regístrate para una membresía
+
+### Para Administradores
+1. Haz clic en el botón ⚙️ (esquina inferior derecha)
+2. Accede al sistema administrativo
+3. Gestiona usuarios, inventario y ventas
+4. Revisa reportes y estadísticas
+
+## 📱 Responsive Design
+
+El sistema está optimizado para:
+- **Desktop** (1024px+)
+- **Tablet** (768px - 1023px)
+- **Mobile** (320px - 767px)
+
+## 🔒 Características de Seguridad
+
+- Validación de datos en formularios
+- Control de acceso al sistema administrativo
+- Persistencia segura de datos en localStorage
+- Validaciones de stock y precios
+
+## 🎯 Próximas Mejoras
+
+- [ ] Autenticación de usuarios
+- [ ] Base de datos real (PostgreSQL/MongoDB)
+- [ ] Sistema de notificaciones
+- [ ] Reportes avanzados con gráficos
+- [ ] Integración con sistemas de pago
+- [ ] App móvil nativa
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## 👨‍💻 Desarrollador
+
+Desarrollado con ❤️ para la gestión eficiente de gimnasios.
+
+---
+
+**PowerGym** - Transformando la gestión de gimnasios, un entrenamiento a la vez. 💪
