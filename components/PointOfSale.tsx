@@ -103,12 +103,9 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
     }, 0);
   };
 
-  const calculateTax = () => {
-    return calculateTotal() * 0.16; // 16% IVA
-  };
-
+  // Removed IVA; final total equals subtotal
   const calculateFinalTotal = () => {
-    return calculateTotal() + calculateTax();
+    return calculateTotal();
   };
 
   const processSale = () => {
@@ -317,10 +314,7 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
                       <span>Subtotal:</span>
                       <span>${calculateTotal().toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>IVA (16%):</span>
-                      <span>${calculateTax().toFixed(2)}</span>
-                    </div>
+                    {/* IVA removed */}
                     <div className="flex justify-between text-lg font-bold border-t border-gray-200 pt-2">
                       <span>Total:</span>
                       <span className="text-green-600">${calculateFinalTotal().toFixed(2)} MXN</span>

@@ -11,7 +11,7 @@ export default function Home() {
     return (
       <div>
         <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Sistema Administrativo - PowerGym</h1>
+          <h1 className="text-xl font-bold">Sistema Administrativo - Garage Fitness Club</h1>
           <button
             onClick={() => setShowAdmin(false)}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
