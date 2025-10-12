@@ -15,7 +15,7 @@ export default function AdminSystem() {
       case 'dashboard':
         return <AdminDashboard onPageChange={setCurrentPage} />;
       case 'users':
-        return <UserManagement onPageChange={setCurrentPage} />;
+        return <UserManagement onPageChange={setCurrentPage} readOnly={false} />;
       case 'pos':
         return <PointOfSale onPageChange={setCurrentPage} />;
       case 'inventory':

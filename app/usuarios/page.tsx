@@ -15,7 +15,7 @@ export default function UsuariosPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
-      <UserManagement onPageChange={handlePageChange} />
+      <UserManagement onPageChange={handlePageChange} readOnly />
     </div>
   );
 }

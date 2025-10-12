@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from './lib/supabaseClient';
 
 // Tipos de datos
 interface User {
@@ -49,15 +50,100 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [isClient, setIsClient] = useState(false);
 
-  // Cargar datos del localStorage
+  // Cargar datos desde Supabase
   useEffect(() => {
     setIsClient(true);
-    const savedUsers = localStorage.getItem('gymUsers');
+    loadUsersFromSupabase();
     const savedSales = localStorage.getItem('gymSales');
-    
-    if (savedUsers) setUsers(JSON.parse(savedUsers));
     if (savedSales) setSales(JSON.parse(savedSales));
   }, []);
+
+  const loadUsersFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .order('id', { ascending: false });
+      
+      if (error) {
+        console.error('Error cargando usuarios:', error);
+        // Fallback a localStorage si hay error
+        const savedUsers = localStorage.getItem('gymUsers');
+        if (savedUsers) setUsers(JSON.parse(savedUsers));
+        return;
+      }
+      
+      if (data) {
+        // Convertir datos de Supabase al formato esperado por la UI
+        const convertedUsers: User[] = data.map((user: any) => {
+          // Determinar tipo de membresía basado en el pago
+          let membershipType: 'day' | 'week' | 'month' = 'month';
+          if (user.pago === 50) membershipType = 'day';
+          else if (user.pago === 300) membershipType = 'week';
+          else if (user.pago === 800) membershipType = 'month';
+          
+          // Usar fechas existentes si están disponibles, sino calcular nuevas
+          let startDate, endDate;
+          
+          if (user['fecha-inicio'] && user['fecha-final']) {
+            // Si ya existen fechas en la base de datos, usarlas
+            startDate = new Date(user['fecha-inicio']);
+            endDate = new Date(user['fecha-final']);
+          } else if (user.start_date && user.end_date) {
+            // Fallback a nombres antiguos de columnas
+            startDate = new Date(user.start_date);
+            endDate = new Date(user.end_date);
+          } else {
+            // Calcular fechas nuevas basadas en el tipo de membresía
+            startDate = new Date();
+            endDate = new Date();
+            
+            switch (membershipType) {
+              case 'day':
+                endDate.setDate(startDate.getDate() + 1);
+                break;
+              case 'week':
+                endDate.setDate(startDate.getDate() + 7);
+                break;
+              case 'month':
+                // Agregar exactamente un mes, manejando casos especiales
+                const currentMonth = startDate.getMonth();
+                const currentYear = startDate.getFullYear();
+                const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+                const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+                endDate.setFullYear(nextYear, nextMonth, startDate.getDate());
+                
+                // Si el día no existe en el próximo mes (ej: 31 de enero -> 28/29 de febrero)
+                if (endDate.getDate() !== startDate.getDate()) {
+                  endDate.setDate(0); // Último día del mes anterior
+                }
+                break;
+            }
+          }
+          
+          return {
+            id: user.id.toString(),
+            name: user.nombre,
+            email: user.email,
+            phone: user.telefono || '',
+            membershipType,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            isActive: user.is_active !== undefined ? user.is_active : true
+          };
+        });
+        
+        setUsers(convertedUsers);
+        // También guardar en localStorage como backup
+        localStorage.setItem('gymUsers', JSON.stringify(convertedUsers));
+      }
+    } catch (e) {
+      console.error('Excepción cargando usuarios:', e);
+      // Fallback a localStorage
+      const savedUsers = localStorage.getItem('gymUsers');
+      if (savedUsers) setUsers(JSON.parse(savedUsers));
+    }
+  };
 
   // Guardar datos en localStorage
   useEffect(() => {
