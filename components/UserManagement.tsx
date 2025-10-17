@@ -23,6 +23,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   const [users, setUsers] = useState<User[]>([]);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUserCustomPayment, setEditingUserCustomPayment] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'active' | 'inactive'>('all');
   const [isClient, setIsClient] = useState(false);
@@ -35,6 +36,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   const [userToRenew, setUserToRenew] = useState<User | null>(null);
   const [renewalData, setRenewalData] = useState({
     membershipType: 'month' as 'day' | 'week' | 'month',
+    customPayment: '',
     startDate: new Date().toISOString().split('T')[0]
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -45,6 +47,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     email: '',
     phone: '',
     membershipType: 'month' as 'day' | 'week' | 'month',
+    customPayment: '',
     startDate: new Date().toISOString().split('T')[0], // Fecha de hoy por defecto
     endDate: '' // Se calculará automáticamente
   });
@@ -55,6 +58,21 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     const calculatedEndDate = calculateEndDate(today, newUser.membershipType);
     setNewUser(prev => ({ ...prev, endDate: calculatedEndDate }));
   }, []);
+
+  // Función para obtener el pago basado en tipo de membresía o pago personalizado
+  const getPaymentAmount = (membershipType: 'day' | 'week' | 'month', customPayment: string): number => {
+    if (customPayment && !isNaN(Number(customPayment)) && Number(customPayment) > 0) {
+      return Number(customPayment);
+    }
+    
+    const membershipPriceMap: Record<'day' | 'week' | 'month', number> = {
+      day: 50,
+      week: 300,
+      month: 800
+    };
+    
+    return membershipPriceMap[membershipType];
+  };
 
   // Función para calcular fecha final basada en fecha de inicio y tipo de membresía
   const calculateEndDate = (startDate: string, membershipType: 'day' | 'week' | 'month'): string => {
@@ -129,9 +147,11 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         console.error('❌ Error cargando usuarios:', error);
         alert(`Error cargando usuarios: ${error.message}`);
         // Fallback a localStorage si hay error
-        const savedUsers = localStorage.getItem('gymUsers');
-        if (savedUsers) {
-          setUsers(JSON.parse(savedUsers));
+        if (typeof window !== 'undefined') {
+          const savedUsers = localStorage.getItem('gymUsers');
+          if (savedUsers) {
+            setUsers(JSON.parse(savedUsers));
+          }
         }
         return;
       }
@@ -203,7 +223,9 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         setUsers(usersWithUpdatedStatus);
         
         // También guardar en localStorage como backup
-        localStorage.setItem('gymUsers', JSON.stringify(convertedUsers));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('gymUsers', JSON.stringify(convertedUsers));
+        }
       } else {
         setUsers([]);
       }
@@ -211,8 +233,10 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       console.error('Excepción cargando usuarios:', e);
       alert(`Error de conexión: ${e}`);
       // Fallback a localStorage
-      const savedUsers = localStorage.getItem('gymUsers');
-      if (savedUsers) setUsers(JSON.parse(savedUsers));
+      if (typeof window !== 'undefined') {
+        const savedUsers = localStorage.getItem('gymUsers');
+        if (savedUsers) setUsers(JSON.parse(savedUsers));
+      }
     } finally {
       setLoadingUsers(false);
     }
@@ -239,7 +263,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     }
     
     const user: User = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newUser.name,
       email: newUser.email,
       phone: newUser.phone,
@@ -249,19 +273,15 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       isActive: true
     };
     
-    // Calcular pago segn tipo de membresa
-    const membershipPriceMap: Record<'day' | 'week' | 'month', number> = {
-      day: 50,
-      week: 300,
-      month: 800
-    };
+    // Obtener pago (personalizado o según tipo de membresía)
+    const paymentAmount = getPaymentAmount(newUser.membershipType, newUser.customPayment);
 
     try {
       const userData = {
         nombre: newUser.name,
         email: newUser.email,
         telefono: newUser.phone,
-        pago: membershipPriceMap[newUser.membershipType],
+        pago: paymentAmount,
         'fecha-inicio': startDate.toISOString().split('T')[0],
         'fecha-final': endDate.toISOString().split('T')[0]
       };
@@ -278,7 +298,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       }
       // Recargar usuarios desde Supabase para mostrar los datos actualizados
       await loadUsersFromSupabase();
-      setNewUser({ name: '', email: '', phone: '', membershipType: 'month', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+      setNewUser({ name: '', email: '', phone: '', membershipType: 'month', customPayment: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
       setShowUserForm(false);
     } catch (e: any) {
       console.error('Excepcin insertando en Supabase:', e);
@@ -316,12 +336,8 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       return;
     }
 
-    // Calcular pago según tipo de membresía
-    const membershipPriceMap: Record<'day' | 'week' | 'month', number> = {
-      day: 50,
-      week: 300,
-      month: 800
-    };
+    // Obtener pago (personalizado o según tipo de membresía)
+    const paymentAmount = getPaymentAmount(editingUser.membershipType, editingUserCustomPayment);
 
     try {
       const { data: updatedRows, error } = await supabase
@@ -330,7 +346,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
           nombre: editingUser.name,
           email: editingUser.email,
           telefono: editingUser.phone,
-          pago: membershipPriceMap[editingUser.membershipType],
+          pago: paymentAmount,
           'fecha-inicio': startDate.toISOString().split('T')[0],
           'fecha-final': endDate.toISOString().split('T')[0]
         })
@@ -411,6 +427,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     setUserToRenew(user);
     setRenewalData({
       membershipType: user.membershipType,
+      customPayment: '',
       startDate: new Date().toISOString().split('T')[0]
     });
     setShowRenewalForm(true);
@@ -422,18 +439,14 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     const startDate = new Date(renewalData.startDate);
     const endDate = calculateEndDate(renewalData.startDate, renewalData.membershipType);
 
-    // Calcular pago según tipo de membresía
-    const membershipPriceMap: Record<'day' | 'week' | 'month', number> = {
-      day: 50,
-      week: 300,
-      month: 800
-    };
+    // Obtener pago (personalizado o según tipo de membresía)
+    const paymentAmount = getPaymentAmount(renewalData.membershipType, renewalData.customPayment);
 
     try {
       const { data: updatedRows, error } = await supabase
         .from('usuarios')
         .update({
-          pago: membershipPriceMap[renewalData.membershipType],
+          pago: paymentAmount,
           'fecha-inicio': startDate.toISOString().split('T')[0],
           'fecha-final': endDate
         })
@@ -768,7 +781,10 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => setEditingUser(user)}
+                            onClick={() => {
+                              setEditingUser(user);
+                              setEditingUserCustomPayment('');
+                            }}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             Editar
@@ -894,10 +910,23 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   onKeyDown={handleAddFormKeyDown}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="day">Día - $50 MXN</option>
-                  <option value="week">Semana - $300 MXN</option>
-                  <option value="month">Mes - $800 MXN</option>
+                  <option value="day">Día</option>
+                  <option value="week">Semana</option>
+                  <option value="month">Mes</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado (Opcional)</label>
+                <input
+                  type="number"
+                  placeholder="Ingresa un monto personalizado"
+                  value={newUser.customPayment}
+                  onChange={(e) => setNewUser({...newUser, customPayment: e.target.value})}
+                  onKeyDown={handleAddFormKeyDown}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="0"
+                  step="0.01"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Vencimiento</label>
@@ -984,10 +1013,22 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   onChange={(e) => setEditingUser({...editingUser, membershipType: e.target.value as 'day' | 'week' | 'month'})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="day">Día - $50 MXN</option>
-                  <option value="week">Semana - $300 MXN</option>
-                  <option value="month">Mes - $800 MXN</option>
+                  <option value="day">Día</option>
+                  <option value="week">Semana</option>
+                  <option value="month">Mes</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado (Opcional)</label>
+                <input
+                  type="number"
+                  placeholder="Ingresa un monto personalizado"
+                  value={editingUserCustomPayment}
+                  onChange={(e) => setEditingUserCustomPayment(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="0"
+                  step="0.01"
+                />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -1029,7 +1070,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
             </div>
 
             {(() => {
-              const now = Date.now();
+              const now = new Date().getTime();
               const end = new Date(selectedUser.endDate).getTime();
               const start = new Date(selectedUser.startDate).getTime();
               const remainingMs = end - now;
@@ -1163,10 +1204,22 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   onChange={(e) => setRenewalData({...renewalData, membershipType: e.target.value as 'day' | 'week' | 'month'})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="day">Día - $50 MXN</option>
-                  <option value="week">Semana - $300 MXN</option>
-                  <option value="month">Mes - $800 MXN</option>
+                  <option value="day">Día</option>
+                  <option value="week">Semana</option>
+                  <option value="month">Mes</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado (Opcional)</label>
+                <input
+                  type="number"
+                  placeholder="Ingresa un monto personalizado"
+                  value={renewalData.customPayment}
+                  onChange={(e) => setRenewalData({...renewalData, customPayment: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="0"
+                  step="0.01"
+                />
               </div>
               
               <div className="bg-blue-50 rounded-lg p-4">

@@ -37,26 +37,37 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
   const [users, setUsers] = useState<User[]>([]);
-  const [products, setProducts] = useState<Product[]>([
-    { id: '1', name: 'Agua 500ml', price: 15, stock: 100, category: 'water' },
-    { id: '2', name: 'Proteína Whey', price: 350, stock: 25, category: 'protein' },
-    { id: '3', name: 'Creatina', price: 280, stock: 15, category: 'supplements' },
-    { id: '4', name: 'Agua 1L', price: 25, stock: 80, category: 'water' },
-    { id: '5', name: 'BCAA', price: 420, stock: 20, category: 'supplements' },
-    { id: '6', name: 'Pre-entreno', price: 380, stock: 12, category: 'supplements' },
-    { id: '7', name: 'Proteína Caseína', price: 450, stock: 8, category: 'protein' },
-    { id: '8', name: 'Glutamina', price: 320, stock: 18, category: 'supplements' }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Cargar datos desde Supabase
   useEffect(() => {
     setIsClient(true);
     loadUsersFromSupabase();
-    const savedSales = localStorage.getItem('gymSales');
-    if (savedSales) setSales(JSON.parse(savedSales));
+    loadSalesFromSupabase();
+    loadProductsFromSupabase();
+    
+    // Actualizar datos cada 30 segundos
+    const interval = setInterval(() => {
+      loadUsersFromSupabase();
+      loadSalesFromSupabase();
+      loadProductsFromSupabase();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
+
+  const refreshData = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      loadUsersFromSupabase(),
+      loadSalesFromSupabase(),
+      loadProductsFromSupabase()
+    ]);
+    setRefreshing(false);
+  };
 
   const loadUsersFromSupabase = async () => {
     try {
@@ -145,6 +156,83 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
     }
   };
 
+  const loadSalesFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ventas')
+        .select('*')
+        .order('fecha', { ascending: false });
+      
+      if (error) {
+        console.error('Error cargando ventas:', error);
+        // Fallback a localStorage si hay error
+        if (typeof window !== 'undefined') {
+          const savedSales = localStorage.getItem('gymSales');
+          if (savedSales) setSales(JSON.parse(savedSales));
+        }
+        return;
+      }
+      
+      if (data) {
+        // Convertir datos de Supabase al formato esperado por la UI
+        const convertedSales: Sale[] = data.map((sale: any) => ({
+          id: sale.id.toString(),
+          products: Array.isArray(sale.productos) ? 
+            sale.productos.map((producto: any) => ({
+              productId: typeof producto === 'string' ? '1' : producto.productId?.toString() || '1',
+              quantity: typeof producto === 'string' ? 1 : producto.quantity || 1,
+              price: typeof producto === 'string' ? 0 : producto.price || 0
+            })) : [],
+          total: sale.total || 0,
+          date: sale.fecha,
+          customerName: sale.cliente_nombre
+        }));
+        
+        setSales(convertedSales);
+        // También guardar en localStorage como backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('gymSales', JSON.stringify(convertedSales));
+        }
+      }
+    } catch (e) {
+      console.error('Excepción cargando ventas:', e);
+      // Fallback a localStorage
+      if (typeof window !== 'undefined') {
+        const savedSales = localStorage.getItem('gymSales');
+        if (savedSales) setSales(JSON.parse(savedSales));
+      }
+    }
+  };
+
+  const loadProductsFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('productos')
+        .select('*')
+        .order('nombre');
+      
+      if (error) {
+        console.error('Error cargando productos:', error);
+        return;
+      }
+      
+      if (data) {
+        // Convertir datos de Supabase al formato esperado por la UI
+        const convertedProducts: Product[] = data.map((product: any) => ({
+          id: product.id.toString(),
+          name: product.nombre,
+          price: product.precio,
+          stock: product.stock,
+          category: product.categoria as 'water' | 'protein' | 'supplements'
+        }));
+        
+        setProducts(convertedProducts);
+      }
+    } catch (e) {
+      console.error('Excepción cargando productos:', e);
+    }
+  };
+
   // Guardar datos en localStorage
   useEffect(() => {
     if (isClient) {
@@ -167,6 +255,15 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
   const lowStockProducts = products.filter(product => product.stock < 10);
   const totalProducts = products.length;
   const totalStockValue = products.reduce((total, product) => total + (product.price * product.stock), 0);
+  
+  // Miembros recientes (solo activos, ordenados por fecha de registro más reciente)
+  const recentActiveUsers = users
+    .filter(user => user.isActive)
+    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+    .slice(0, 5);
+  
+  // Ventas recientes (últimas 5 ventas)
+  const recentSales = sales.slice(0, 5);
 
   // Ventas por categoría
   const salesByCategory = products.reduce((acc, product) => {
@@ -198,8 +295,28 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Administrativo</h1>
-          <p className="text-gray-600 mt-2">Resumen general del gimnasio</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard Administrativo</h1>
+              <p className="text-gray-600 mt-2">Resumen general del gimnasio</p>
+            </div>
+            <button
+              onClick={refreshData}
+              disabled={refreshing}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              {refreshing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Actualizando...
+                </>
+              ) : (
+                <>
+                  🔄 Actualizar Datos
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -299,27 +416,28 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
               <h3 className="text-lg font-semibold text-gray-900">Miembros Recientes</h3>
             </div>
             <div className="p-6">
-              {users.slice(0, 5).length > 0 ? (
+              {recentActiveUsers.length > 0 ? (
                 <div className="space-y-4">
-                  {users.slice(0, 5).map(user => (
+                  {recentActiveUsers.map(user => (
                     <div key={user.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-gray-900">{user.name}</p>
                         <p className="text-sm text-gray-500">{user.email}</p>
                       </div>
                       <div className="text-right">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {user.isActive ? 'Activo' : 'Inactivo'}
+                        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                          Activo
                         </span>
                         <p className="text-xs text-gray-500 mt-1 capitalize">{user.membershipType}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Registrado: {new Date(user.startDate).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No hay miembros registrados</p>
+                <p className="text-gray-500 text-center py-4">No hay miembros activos registrados</p>
               )}
             </div>
           </div>
@@ -330,9 +448,9 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
               <h3 className="text-lg font-semibold text-gray-900">Ventas Recientes</h3>
             </div>
             <div className="p-6">
-              {sales.slice(0, 5).length > 0 ? (
+              {recentSales.length > 0 ? (
                 <div className="space-y-4">
-                  {sales.slice(0, 5).map(sale => (
+                  {recentSales.map(sale => (
                     <div key={sale.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-gray-900">
@@ -346,6 +464,9 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
                         <p className="font-semibold text-gray-900">${sale.total.toFixed(2)}</p>
                         <p className="text-xs text-gray-500">
                           {new Date(sale.date).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(sale.date).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>

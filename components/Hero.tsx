@@ -2,23 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ClientOnly } from './lib/ClientOnly';
 
 export default function Hero() {
   const [showMembershipModal, setShowMembershipModal] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [particles, setParticles] = useState<Array<{id: number, left: number, top: number, delay: number, duration: number}>>([]);
   const router = useRouter();
 
   useEffect(() => {
-    setIsLoaded(true);
-    // Generate particles only on client side
-    const generatedParticles = [...Array(20)].map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 2,
-      duration: 3 + Math.random() * 4
-    }));
+    // Generate particles only on client side after mounting
+    // Use a deterministic seed to ensure consistent generation
+    const seed = 12345; // Fixed seed for consistent generation
+    const generatedParticles = [...Array(20)].map((_, i) => {
+      // Simple pseudo-random function using seed and index
+      const random = (seed: number, index: number) => {
+        const x = Math.sin(seed + index) * 10000;
+        return x - Math.floor(x);
+      };
+      
+      return {
+        id: i,
+        left: random(seed, i) * 100,
+        top: random(seed, i + 100) * 100,
+        delay: random(seed, i + 200) * 2,
+        duration: 3 + random(seed, i + 300) * 4
+      };
+    });
     setParticles(generatedParticles);
   }, []);
 
@@ -46,20 +55,22 @@ export default function Hero() {
         </div>
 
         {/* Floating particles */}
-        <div className="absolute inset-0">
-          {particles.map((particle) => (
-            <div
-              key={particle.id}
-              className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-60 animate-float"
-              style={{
-                left: `${particle.left}%`,
-                top: `${particle.top}%`,
-                animationDelay: `${particle.delay}s`,
-                animationDuration: `${particle.duration}s`
-              }}
-            ></div>
-          ))}
-        </div>
+        <ClientOnly>
+          <div className="absolute inset-0">
+            {particles.map((particle) => (
+              <div
+                key={particle.id}
+                className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-60 animate-float"
+                style={{
+                  left: `${particle.left}%`,
+                  top: `${particle.top}%`,
+                  animationDelay: `${particle.delay}s`,
+                  animationDuration: `${particle.duration}s`
+                }}
+              ></div>
+            ))}
+          </div>
+        </ClientOnly>
       </div>
 
       {/* Main Content */}
@@ -67,7 +78,7 @@ export default function Hero() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
         
         {/* Central Content */}
-        <div className={`relative z-10 text-center max-w-6xl mx-auto transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className="relative z-10 text-center max-w-6xl mx-auto transition-all duration-1000 opacity-100 translate-y-0">
           {/* Brand Logo */}
           <div className="mb-16">
             <div className="inline-block mb-8 group">

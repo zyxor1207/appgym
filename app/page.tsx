@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Hero from '../components/Hero';
 import AdminSystem from '../components/AdminSystem';
 import SupabaseProbe from '../components/SupabaseProbe';
+import { useClientOnly } from '../components/lib/useClientOnly';
+import { ClientOnly } from '../components/lib/ClientOnly';
 
 export default function Home() {
   const [showAdmin, setShowAdmin] = useState(false);
@@ -12,14 +14,19 @@ export default function Home() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const hasMounted = useClientOnly();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('adminAuth');
-    setIsAdminAuthed(stored === 'true');
-  }, []);
+    if (hasMounted) {
+      // Only access localStorage after component is mounted
+      const stored = localStorage.getItem('adminAuth');
+      setIsAdminAuthed(stored === 'true');
+    }
+  }, [hasMounted]);
 
   const handleOpenAdmin = () => {
+    if (!hasMounted) return; // Esperar a que el componente esté montado
+    
     if (isAdminAuthed) {
       setShowAdmin(true);
     } else {
@@ -28,7 +35,7 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') {
+    if (hasMounted) {
       localStorage.removeItem('adminAuth');
     }
     setIsAdminAuthed(false);
@@ -41,7 +48,7 @@ export default function Home() {
     const ADMIN_USER = 'dueno';
     const ADMIN_PASS = 'gym2025';
     if (username === ADMIN_USER && password === ADMIN_PASS) {
-      if (typeof window !== 'undefined') {
+      if (hasMounted) {
         localStorage.setItem('adminAuth', 'true');
       }
       setIsAdminAuthed(true);
@@ -82,19 +89,28 @@ export default function Home() {
   return (
     <div>
       {/* Botón flotante para acceder al admin */}
-      <button
-        onClick={handleOpenAdmin}
-        className="fixed bottom-6 right-6 bg-gray-800 hover:bg-gray-900 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-105 z-50"
-        title="Acceder al Sistema Administrativo"
+      <ClientOnly
+        fallback={
+          <div className="fixed bottom-6 right-6 bg-gray-800 text-white p-4 rounded-full shadow-lg z-50 opacity-50">
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }
       >
-        <span className="text-2xl">⚙️</span>
-      </button>
+        <button
+          onClick={handleOpenAdmin}
+          className="fixed bottom-6 right-6 bg-gray-800 hover:bg-gray-900 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-105 z-50"
+          title="Acceder al Sistema Administrativo"
+        >
+          <span className="text-2xl">⚙️</span>
+        </button>
+      </ClientOnly>
       <Hero />
       <SupabaseProbe />
 
-      {showLogin && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6">
+      <ClientOnly>
+        {showLogin && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">Acceso Administrativo</h2>
             <p className="text-gray-500 mb-6">Inicia sesión para ver pagos y gestión</p>
             <form onSubmit={handleLogin}>
@@ -104,17 +120,20 @@ export default function Home() {
                   placeholder="Usuario"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-500 bg-white"
+                  autoComplete="username"
+                  autoFocus
                 />
                 <input
                   type="password"
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-500 bg-white"
+                  autoComplete="current-password"
                 />
                 {loginError && (
-                  <div className="text-red-600 text-sm">{loginError}</div>
+                  <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{loginError}</div>
                 )}
               </div>
               <div className="flex gap-3 mt-6">
@@ -138,7 +157,8 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
+        )}
+      </ClientOnly>
     </div>
   );
 }
