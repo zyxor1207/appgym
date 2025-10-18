@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
+import ValidationAlert from './ValidationAlert';
 
 interface User {
   id: string;
@@ -41,10 +42,12 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [showEditValidationAlert, setShowEditValidationAlert] = useState(false);
+  const [showRenewalValidationAlert, setShowRenewalValidationAlert] = useState(false);
 
   const [newUser, setNewUser] = useState({
     name: '',
-    email: '',
     phone: '',
     membershipType: 'month' as 'day' | 'week' | 'month',
     customPayment: '',
@@ -56,22 +59,159 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const calculatedEndDate = calculateEndDate(today, newUser.membershipType);
-    setNewUser(prev => ({ ...prev, endDate: calculatedEndDate }));
+    
+    // Verificar que la fecha calculada sea válida
+    if (calculatedEndDate && calculatedEndDate !== '') {
+      setNewUser(prev => ({ ...prev, endDate: calculatedEndDate }));
+    } else {
+      // Fallback: calcular manualmente para mes
+      const fallbackDate = new Date();
+      fallbackDate.setMonth(fallbackDate.getMonth() + 1);
+      setNewUser(prev => ({ ...prev, endDate: fallbackDate.toISOString().split('T')[0] }));
+    }
   }, []);
 
-  // Función para obtener el pago basado en tipo de membresía o pago personalizado
-  const getPaymentAmount = (membershipType: 'day' | 'week' | 'month', customPayment: string): number => {
-    if (customPayment && !isNaN(Number(customPayment)) && Number(customPayment) > 0) {
-      return Number(customPayment);
+  // Ocultar alerta de validación cuando el usuario empiece a llenar los campos
+  useEffect(() => {
+    if (showValidationAlert && validateForm()) {
+      setShowValidationAlert(false);
+    }
+  }, [newUser, showValidationAlert]);
+
+  // Función para obtener el pago personalizado (ahora obligatorio)
+  const getPaymentAmount = (customPayment: string): number => {
+    return Number(customPayment);
+  };
+
+  // Función para registrar membresía en el historial de ventas
+  const registerMembershipInSalesHistory = async (
+    tipoOperacion: 'nueva_membresia' | 'renovacion',
+    usuarioId: string,
+    usuarioNombre: string,
+    monto: number,
+    tipoMembresia: 'day' | 'week' | 'month',
+    fechaInicio: string,
+    fechaFinal: string
+  ) => {
+    try {
+      const membershipData = {
+        cliente_nombre: usuarioNombre,
+        total: monto,
+        fecha: new Date().toISOString(), // Agregar fecha actual
+        productos: [{
+          productId: 'membership',
+          productName: `Membresía ${tipoMembresia === 'day' ? 'Diaria' : tipoMembresia === 'week' ? 'Semanal' : 'Mensual'}`,
+          price: monto,
+          quantity: 1,
+          subtotal: monto,
+          // Información adicional de membresía almacenada en el producto
+          tipo_operacion: tipoOperacion,
+          usuario_id: usuarioId,
+          tipo_membresia: tipoMembresia,
+          fecha_inicio: fechaInicio,
+          fecha_final: fechaFinal
+        }]
+      };
+
+      const { error } = await supabase
+        .from('ventas')
+        .insert([membershipData]);
+
+      if (error) {
+        console.error('Error registrando membresía en historial:', error);
+        // No lanzamos error para no interrumpir el flujo principal
+      } else {
+        console.log('✅ Membresía registrada en historial de ventas');
+      }
+    } catch (e) {
+      console.error('Excepción registrando membresía en historial:', e);
+      // No lanzamos error para no interrumpir el flujo principal
+    }
+  };
+
+  // Función para validar todos los campos obligatorios
+  const validateForm = (): boolean => {
+    const { name, phone, customPayment, startDate, endDate } = newUser;
+    
+    // Verificar que todos los campos estén llenos
+    if (!name || !name.trim()) {
+      return false;
+    }
+    if (!phone || typeof phone !== 'string' || !phone.trim()) {
+      return false;
+    }
+    if (!customPayment || typeof customPayment !== 'string' || !customPayment.trim()) {
+      return false;
+    }
+    if (!startDate || !startDate.trim()) {
+      return false;
+    }
+    if (!endDate || !endDate.trim()) {
+      return false;
     }
     
-    const membershipPriceMap: Record<'day' | 'week' | 'month', number> = {
-      day: 50,
-      week: 300,
-      month: 800
-    };
+    // Verificar que el teléfono tenga exactamente 10 dígitos
+    const phoneDigits = phone.replace(/\D/g, ''); // Remover caracteres no numéricos
+    if (phoneDigits.length !== 10) {
+      return false;
+    }
     
-    return membershipPriceMap[membershipType];
+    // Verificar que el pago personalizado sea un número válido y mayor a 0
+    const paymentValue = parseFloat(customPayment);
+    if (isNaN(paymentValue) || paymentValue <= 0) {
+      return false;
+    }
+    
+    // Verificar que las fechas sean válidas
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Función para validar formulario de edición (más flexible)
+  const validateEditForm = (): boolean => {
+    if (!editingUser) return false;
+    
+    const { name, phone } = editingUser;
+    
+    // Solo verificar que el nombre esté presente
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return false;
+    }
+    
+    // El teléfono es opcional en edición, pero si está presente debe ser válido
+    if (phone && typeof phone === 'string' && phone.trim()) {
+      const phoneDigits = phone.replace(/\D/g, '');
+      // Solo validar longitud si hay contenido
+      if (phoneDigits.length > 0 && phoneDigits.length !== 10) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Función para validar formulario de renovación
+  const validateRenewalForm = (): boolean => {
+    const { customPayment } = renewalData;
+    
+    // Verificar que el pago personalizado esté lleno
+    if (!customPayment || typeof customPayment !== 'string' || !customPayment.trim()) {
+      return false;
+    }
+    
+    // Verificar que el pago personalizado sea un número válido y mayor a 0
+    const paymentValue = parseFloat(customPayment);
+    if (isNaN(paymentValue) || paymentValue <= 0) {
+      return false;
+    }
+    
+    return true;
   };
 
   // Función para calcular fecha final basada en fecha de inicio y tipo de membresía
@@ -251,11 +391,27 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
 
   const addUser = async () => {
     if (readOnly) return;
-    if (!newUser.name || !newUser.email) return;
+    
+    // Usar la nueva función de validación
+    if (!validateForm()) {
+      setShowValidationAlert(true);
+      return;
+    }
     
     // Validar fechas
     const startDate = new Date(newUser.startDate);
     const endDate = new Date(newUser.endDate);
+    
+    // Verificar que las fechas sean válidas
+    if (isNaN(startDate.getTime())) {
+      alert('La fecha de inicio no es válida');
+      return;
+    }
+    
+    if (isNaN(endDate.getTime())) {
+      alert('La fecha de vencimiento no es válida');
+      return;
+    }
     
     if (endDate <= startDate) {
       alert('La fecha de vencimiento debe ser posterior a la fecha de inicio');
@@ -265,7 +421,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     const user: User = {
       id: crypto.randomUUID(),
       name: newUser.name,
-      email: newUser.email,
+      email: 'usuario@gym.com', // Email genérico predeterminado
       phone: newUser.phone,
       membershipType: newUser.membershipType,
       startDate: startDate.toISOString().split('T')[0],
@@ -273,13 +429,13 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       isActive: true
     };
     
-    // Obtener pago (personalizado o según tipo de membresía)
-    const paymentAmount = getPaymentAmount(newUser.membershipType, newUser.customPayment);
+    // Obtener pago personalizado
+    const paymentAmount = getPaymentAmount(newUser.customPayment);
 
     try {
       const userData = {
         nombre: newUser.name,
-        email: newUser.email,
+        email: 'usuario@gym.com', // Email genérico predeterminado
         telefono: newUser.phone,
         pago: paymentAmount,
         'fecha-inicio': startDate.toISOString().split('T')[0],
@@ -298,7 +454,19 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       }
       // Recargar usuarios desde Supabase para mostrar los datos actualizados
       await loadUsersFromSupabase();
-      setNewUser({ name: '', email: '', phone: '', membershipType: 'month', customPayment: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+      
+      // Registrar la nueva membresía en el historial de ventas
+      await registerMembershipInSalesHistory(
+        'nueva_membresia',
+        user.id,
+        user.name,
+        paymentAmount,
+        user.membershipType,
+        user.startDate,
+        user.endDate
+      );
+      
+      setNewUser({ name: '', phone: '', membershipType: 'month', customPayment: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
       setShowUserForm(false);
     } catch (e: any) {
       console.error('Excepcin insertando en Supabase:', e);
@@ -308,7 +476,13 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
 
   const submitAddUserWithTransition = async () => {
     if (readOnly) return;
-    if (!newUser.name || !newUser.email) return;
+    
+    // Validar formulario antes de proceder
+    if (!validateForm()) {
+      setShowValidationAlert(true);
+      return;
+    }
+    
     setIsClosingAddModal(true);
     setTimeout(async () => {
       await addUser();
@@ -327,6 +501,12 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
     if (readOnly) return;
     if (!editingUser) return;
     
+    // Validar formulario antes de proceder
+    if (!validateEditForm()) {
+      setShowEditValidationAlert(true);
+      return;
+    }
+    
     // Validar fechas
     const startDate = new Date(editingUser.startDate);
     const endDate = new Date(editingUser.endDate);
@@ -336,8 +516,8 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
       return;
     }
 
-    // Obtener pago (personalizado o según tipo de membresía)
-    const paymentAmount = getPaymentAmount(editingUser.membershipType, editingUserCustomPayment);
+    // Obtener pago personalizado
+    const paymentAmount = getPaymentAmount(editingUserCustomPayment);
 
     try {
       const { data: updatedRows, error } = await supabase
@@ -436,11 +616,18 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   const processRenewal = async () => {
     if (!userToRenew) return;
 
-    const startDate = new Date(renewalData.startDate);
-    const endDate = calculateEndDate(renewalData.startDate, renewalData.membershipType);
+    // Validar formulario antes de proceder
+    if (!validateRenewalForm()) {
+      setShowRenewalValidationAlert(true);
+      return;
+    }
 
-    // Obtener pago (personalizado o según tipo de membresía)
-    const paymentAmount = getPaymentAmount(renewalData.membershipType, renewalData.customPayment);
+    const startDate = new Date(renewalData.startDate);
+    const endDateString = calculateEndDate(renewalData.startDate, renewalData.membershipType);
+    const endDate = new Date(endDateString);
+
+    // Obtener pago personalizado
+    const paymentAmount = getPaymentAmount(renewalData.customPayment);
 
     try {
       const { data: updatedRows, error } = await supabase
@@ -466,6 +653,17 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
 
       // Recargar desde la base de datos para reflejar el estado real
       await loadUsersFromSupabase();
+
+      // Registrar la renovación en el historial de ventas
+      await registerMembershipInSalesHistory(
+        'renovacion',
+        userToRenew.id,
+        userToRenew.name,
+        paymentAmount,
+        renewalData.membershipType,
+        renewalData.startDate,
+        endDateString
+      );
 
       alert('✅ Membresía renovada exitosamente');
       setShowRenewalForm(false);
@@ -626,7 +824,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -665,8 +863,8 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <div className="relative">
                 <input
@@ -675,25 +873,25 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
                 />
                 {searchTerm.trim() && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs md:text-sm text-gray-500">
                     {filteredUsers.length} resultado{filteredUsers.length !== 1 ? 's' : ''}
                   </div>
                 )}
               </div>
               {searchTerm.trim() && filteredUsers.length > 0 && (
-                <div className="mt-2 text-sm text-blue-600">
+                <div className="mt-2 text-xs md:text-sm text-blue-600">
                   💡 Presiona Enter para seleccionar el primer resultado (resaltado en azul)
                 </div>
               )}
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'active' | 'inactive')}
-                className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-auto p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               >
                 <option value="all">Todos</option>
                 <option value="active">Activos</option>
@@ -706,32 +904,32 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         {/* Users Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loadingUsers && (
-            <div className="p-6 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-gray-600">Cargando usuarios...</p>
+            <div className="p-4 md:p-6 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-sm md:text-base text-gray-600">Cargando usuarios...</p>
             </div>
           )}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Usuario
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     Membresía
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                     Fechas
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
                   {!readOnly && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
                     </th>
                   )}
@@ -747,28 +945,28 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                         : ''
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                      <div className="text-xs md:text-sm font-medium text-gray-900">
                         #{user.id}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phone}</div>
+                        <div className="text-sm md:text-base font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs md:text-sm text-gray-500">{user.email}</div>
+                        <div className="text-xs md:text-sm text-gray-500">{user.phone}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
                         {user.membershipType}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500 hidden md:table-cell">
                       <div>Inicio: {user.startDate}</div>
                       <div>Vence: {user.endDate}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         user.isActive 
                           ? 'bg-green-100 text-green-800' 
@@ -778,26 +976,26 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                       </span>
                     </td>
                     {!readOnly && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+                      <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium">
+                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                           <button
                             onClick={() => {
                               setEditingUser(user);
                               setEditingUserCustomPayment('');
                             }}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded text-xs"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => openRenewalForm(user.id)}
-                            className="text-purple-600 hover:text-purple-900"
+                            className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded text-xs"
                           >
                             Renovar
                           </button>
                           <button
                             onClick={() => openDeleteConfirm(user.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 px-2 py-1 rounded text-xs"
                           >
                             Eliminar
                           </button>
@@ -847,36 +1045,44 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
 
       {/* Add User Modal */}
       {!readOnly && showUserForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`bg-white rounded-lg p-8 w-full max-w-md mx-4 transform transition-all duration-200 ${isClosingAddModal ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}> 
-            <h3 className="text-xl font-semibold mb-6">Registrar Nuevo Usuario</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`bg-white rounded-lg p-4 md:p-8 w-full max-w-md mx-4 transform transition-all duration-200 ${isClosingAddModal ? 'scale-95 opacity-0' : 'scale-100 opacity-100'} max-h-[90vh] overflow-y-auto`}> 
+            <h3 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Registrar Nuevo Usuario</h3>
+            
+            <ValidationAlert
+              show={showValidationAlert}
+              onClose={() => setShowValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Nombre completo",
+                "Teléfono (exactamente 10 dígitos)",
+                "Monto de pago personalizado (mayor a $0)",
+                "Fecha de inicio válida",
+                "Fecha de vencimiento válida"
+              ]}
+            />
+            
             <div className="space-y-4">
               <input
                 type="text"
-                placeholder="Nombre completo"
+                placeholder="Nombre completo *"
                 value={newUser.name}
                 onChange={(e) => setNewUser({...newUser, name: e.target.value})}
                 onKeyDown={handleAddFormKeyDown}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                onKeyDown={handleAddFormKeyDown}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
               <input
                 type="tel"
-                placeholder="Teléfono"
+                placeholder="Teléfono *"
                 value={newUser.phone}
                 onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
                 onKeyDown={handleAddFormKeyDown}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio *</label>
                 <input
                   type="date"
                   value={newUser.startDate}
@@ -892,6 +1098,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   onKeyDown={handleAddFormKeyDown}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   title="Fecha de inicio de la membresía"
+                  required
                 />
               </div>
               <div>
@@ -916,7 +1123,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado (Opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado *</label>
                 <input
                   type="number"
                   placeholder="Ingresa un monto personalizado"
@@ -926,10 +1133,11 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   min="0"
                   step="0.01"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Vencimiento</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Vencimiento *</label>
                 <input
                   type="date"
                   value={newUser.endDate}
@@ -937,6 +1145,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   onKeyDown={handleAddFormKeyDown}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   title="Fecha de vencimiento de la membresía"
+                  required
                 />
                 <p className="text-xs text-gray-500 mt-1">Se calcula automáticamente, pero puedes modificarla manualmente</p>
               </div>
@@ -964,24 +1173,28 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 w-full max-w-md mx-4">
             <h3 className="text-xl font-semibold mb-6">Editar Usuario</h3>
+            
+            <ValidationAlert
+              show={showEditValidationAlert}
+              onClose={() => setShowEditValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Nombre completo",
+                "Teléfono (opcional, pero si se proporciona debe tener 10 dígitos)"
+              ]}
+            />
             <div className="space-y-4">
               <input
                 type="text"
-                placeholder="Nombre completo"
+                placeholder="Nombre completo *"
                 value={editingUser.name}
                 onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={editingUser.email}
-                onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
               <input
                 type="tel"
-                placeholder="Teléfono"
+                placeholder="Teléfono (opcional)"
                 value={editingUser.phone}
                 onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1176,6 +1389,16 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 w-full max-w-md mx-4">
             <h3 className="text-xl font-semibold mb-6">Renovar Membresía</h3>
+            
+            <ValidationAlert
+              show={showRenewalValidationAlert}
+              onClose={() => setShowRenewalValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Monto de pago personalizado (mayor a $0)"
+              ]}
+            />
+            
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-semibold text-gray-900 mb-2">Usuario:</h4>
@@ -1210,7 +1433,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado (Opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pago Personalizado *</label>
                 <input
                   type="number"
                   placeholder="Ingresa un monto personalizado"
@@ -1219,6 +1442,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   min="0"
                   step="0.01"
+                  required
                 />
               </div>
               

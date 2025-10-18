@@ -123,8 +123,8 @@ function SalesReport({ onPageChange }: { onPageChange: (page: string) => void })
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">📊 Historial de Ventas</h1>
-              <p className="text-gray-600 mt-2">Análisis de ventas y rendimiento</p>
+              <h1 className="text-3xl font-bold text-gray-900">📊 Historial de Ventas y Membresías</h1>
+              <p className="text-gray-600 mt-2">Análisis de ventas, membresías y rendimiento</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -144,42 +144,65 @@ function SalesReport({ onPageChange }: { onPageChange: (page: string) => void })
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <span className="text-2xl">💰</span>
+              <div className="p-2 md:p-3 bg-green-100 rounded-lg">
+                <span className="text-lg md:text-2xl">💰</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Ventas Hoy</p>
-                <p className="text-2xl font-bold text-gray-900">{todaySales.length}</p>
-                <p className="text-sm text-green-600">${todayRevenue.toFixed(2)} MXN</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Operaciones Hoy</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{todaySales.length}</p>
+                <p className="text-xs md:text-sm text-green-600">${todayRevenue.toFixed(2)} MXN</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <span className="text-2xl">📊</span>
+              <div className="p-2 md:p-3 bg-blue-100 rounded-lg">
+                <span className="text-lg md:text-2xl">📊</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Ventas Esta Semana</p>
-                <p className="text-2xl font-bold text-gray-900">{weeklySales.length}</p>
-                <p className="text-sm text-blue-600">${weeklyRevenue.toFixed(2)} MXN</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Esta Semana</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{weeklySales.length}</p>
+                <p className="text-xs md:text-sm text-blue-600">${weeklyRevenue.toFixed(2)} MXN</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <span className="text-2xl">📅</span>
+              <div className="p-2 md:p-3 bg-purple-100 rounded-lg">
+                <span className="text-lg md:text-2xl">📅</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Ventas de Este Mes</p>
-                <p className="text-2xl font-bold text-gray-900">{monthlySales.length}</p>
-                <p className="text-sm text-purple-600">${monthlyRevenue.toFixed(2)} MXN</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Este Mes</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{monthlySales.length}</p>
+                <p className="text-xs md:text-sm text-purple-600">${monthlyRevenue.toFixed(2)} MXN</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
+            <div className="flex items-center">
+              <div className="p-2 md:p-3 bg-orange-100 rounded-lg">
+                <span className="text-lg md:text-2xl">👥</span>
+              </div>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Membresías</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">
+                  {sales.filter(sale => {
+                    const primerProducto = Array.isArray(sale.productos) && sale.productos.length > 0 ? sale.productos[0] : null;
+                    return primerProducto?.tipo_operacion === 'nueva_membresia' || primerProducto?.tipo_operacion === 'renovacion';
+                  }).length}
+                </p>
+                <p className="text-xs md:text-sm text-orange-600">
+                  ${sales.filter(sale => {
+                    const primerProducto = Array.isArray(sale.productos) && sale.productos.length > 0 ? sale.productos[0] : null;
+                    return primerProducto?.tipo_operacion === 'nueva_membresia' || primerProducto?.tipo_operacion === 'renovacion';
+                  }).reduce((sum, sale) => sum + (sale.total || 0), 0).toFixed(2)} MXN
+                </p>
               </div>
             </div>
           </div>
@@ -188,13 +211,13 @@ function SalesReport({ onPageChange }: { onPageChange: (page: string) => void })
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Historial Completo de Ventas</h3>
+              <h3 className="text-lg font-semibold">Historial Completo de Operaciones</h3>
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
-                  Total de ventas: <span className="font-semibold text-green-600">{sales.length}</span>
+                  Total de operaciones: <span className="font-semibold text-green-600">{sales.length}</span>
                 </span>
                 <span className="text-sm text-gray-600">
-                  Total vendido: <span className="font-semibold text-green-600">
+                  Total ingresos: <span className="font-semibold text-green-600">
                     ${sales.reduce((sum, sale) => sum + (sale.total || 0), 0).toFixed(2)} MXN
                   </span>
                 </span>
@@ -218,70 +241,131 @@ function SalesReport({ onPageChange }: { onPageChange: (page: string) => void })
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tipo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Productos
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cliente/Usuario
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Detalles
+                    </th>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sales.map((sale, index) => (
-                    <tr key={sale.id || index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        #{sale.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(sale.fecha).toLocaleString('es-MX', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {sale.cliente_nombre || (
-                          <span className="text-gray-400 italic">Cliente general</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        <div className="max-w-xs">
-                          {Array.isArray(sale.productos) ? (
-                            <div className="space-y-1">
-                              {sale.productos.slice(0, 2).map((producto: any, idx: number) => (
-                                <div key={idx} className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs">
-                                  {typeof producto === 'string' ? producto : `${producto.productName} (${producto.quantity}x)`}
-                                </div>
-                              ))}
-                              {sale.productos.length > 2 && (
-                                <div className="text-xs text-gray-500">
-                                  +{sale.productos.length - 2} más...
-                                </div>
-                              )}
+                  {sales.map((sale, index) => {
+                    const getTipoOperacion = () => {
+                      // Verificar si es una membresía revisando el primer producto
+                      const primerProducto = Array.isArray(sale.productos) && sale.productos.length > 0 ? sale.productos[0] : null;
+                      const tipoOperacion = primerProducto?.tipo_operacion;
+                      
+                      if (tipoOperacion === 'nueva_membresia') {
+                        return (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            🆕 Nueva Membresía
+                          </span>
+                        );
+                      } else if (tipoOperacion === 'renovacion') {
+                        return (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            🔄 Renovación
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            🛒 Venta Productos
+                          </span>
+                        );
+                      }
+                    };
+
+                    const getDetalles = () => {
+                      // Verificar si es una membresía revisando el primer producto
+                      const primerProducto = Array.isArray(sale.productos) && sale.productos.length > 0 ? sale.productos[0] : null;
+                      const tipoOperacion = primerProducto?.tipo_operacion;
+                      
+                      if (tipoOperacion === 'nueva_membresia' || tipoOperacion === 'renovacion') {
+                        const tipoMembresia = primerProducto?.tipo_membresia === 'day' ? 'Diaria' : 
+                                            primerProducto?.tipo_membresia === 'week' ? 'Semanal' : 'Mensual';
+                        return (
+                          <div className="space-y-1">
+                            <div className="bg-orange-50 text-orange-800 px-2 py-1 rounded text-xs">
+                              Membresía {tipoMembresia}
                             </div>
-                          ) : (
-                            <span className="text-gray-400 italic">Sin productos</span>
+                            {primerProducto?.fecha_inicio && primerProducto?.fecha_final && (
+                              <div className="text-xs text-gray-500">
+                                {primerProducto.fecha_inicio} - {primerProducto.fecha_final}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="max-w-xs">
+                            {Array.isArray(sale.productos) ? (
+                              <div className="space-y-1">
+                                {sale.productos.slice(0, 2).map((producto: any, idx: number) => (
+                                  <div key={idx} className="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs">
+                                    {typeof producto === 'string' ? producto : `${producto.productName} (${producto.quantity}x)`}
+                                  </div>
+                                ))}
+                                {sale.productos.length > 2 && (
+                                  <div className="text-xs text-gray-500">
+                                    +{sale.productos.length - 2} más...
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Sin productos</span>
+                            )}
+                          </div>
+                        );
+                      }
+                    };
+
+                    return (
+                      <tr key={sale.id || index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          #{sale.id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(sale.fecha).toLocaleString('es-MX', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getTipoOperacion()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {sale.cliente_nombre || (
+                            <span className="text-gray-400 italic">Cliente general</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <span className="font-semibold text-green-600">
-                          ${(sale.total || 0).toFixed(2)} MXN
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {getDetalles()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <span className="font-semibold text-green-600">
+                            ${(sale.total || 0).toFixed(2)} MXN
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

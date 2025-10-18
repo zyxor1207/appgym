@@ -168,6 +168,7 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
         .insert([{
           cliente_nombre: customerName || null,
           total: total,
+          fecha: new Date().toISOString(), // Agregar fecha actual
           productos: saleItems
         }])
         .select();
@@ -270,24 +271,24 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
         )}
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Productos */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Productos Disponibles</h2>
-                <div className="flex gap-4">
+            <div className="bg-white rounded-lg shadow p-4 md:p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-4">
+                <h2 className="text-lg md:text-xl font-semibold">Productos Disponibles</h2>
+                <div className="flex flex-col sm:flex-row gap-2 md:gap-4 w-full md:w-auto">
                   <input
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full sm:w-auto p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
                   />
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full sm:w-auto p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
                   >
                     <option value="all">Todas las categorías</option>
                     {categories.filter(cat => cat !== 'all').map(category => (
@@ -335,13 +336,13 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
 
           {/* Carrito */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Carrito de Compras</h2>
+            <div className="bg-white rounded-lg shadow p-4 md:p-6 sticky top-4 md:top-8">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-semibold">Carrito de Compras</h2>
                 {cart.length > 0 && (
                   <button
                     onClick={clearCart}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    className="text-red-600 hover:text-red-800 text-xs md:text-sm"
                   >
                     Limpiar
                   </button>
@@ -354,32 +355,32 @@ export default function PointOfSale({ onPageChange }: PointOfSaleProps) {
                   placeholder="Nombre del cliente (opcional)"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 md:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
                 />
               </div>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
+              <div className="space-y-2 md:space-y-3 max-h-48 md:max-h-64 overflow-y-auto mb-4 md:mb-6">
                 {cart.map(item => {
                   const product = products.find(p => p.id === item.productId);
                   if (!product) return null;
                   
                   return (
-                    <div key={item.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{product.nombre}</p>
-                        <p className="text-sm text-gray-500">${product.precio} c/u</p>
+                    <div key={item.productId} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm md:text-base truncate">{product.nombre}</p>
+                        <p className="text-xs md:text-sm text-gray-500">${product.precio} c/u</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 md:gap-2">
                         <button
                           onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
-                          className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                          className="bg-red-500 hover:bg-red-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-xs md:text-sm"
                         >
                           -
                         </button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <span className="w-6 md:w-8 text-center font-medium text-xs md:text-sm">{item.quantity}</span>
                         <button
                           onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
-                          className="bg-green-500 hover:bg-green-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                          className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-xs md:text-sm"
                         >
                           +
                         </button>

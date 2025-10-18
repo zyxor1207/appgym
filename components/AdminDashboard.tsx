@@ -320,60 +320,60 @@ export default function AdminDashboard({ onPageChange }: AdminDashboardProps) {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <span className="text-2xl">👥</span>
+              <div className="p-2 md:p-3 bg-blue-100 rounded-lg">
+                <span className="text-lg md:text-2xl">👥</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Miembros Activos</p>
-                <p className="text-2xl font-bold text-gray-900">{activeUsers}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Miembros Activos</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{activeUsers}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <span className="text-2xl">💰</span>
+              <div className="p-2 md:p-3 bg-green-100 rounded-lg">
+                <span className="text-lg md:text-2xl">💰</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Ventas Hoy</p>
-                <p className="text-2xl font-bold text-gray-900">{todaySales.length}</p>
-                <p className="text-sm text-green-600">${todayRevenue.toFixed(2)} MXN</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Ventas Hoy</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{todaySales.length}</p>
+                <p className="text-xs md:text-sm text-green-600">${todayRevenue.toFixed(2)} MXN</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <span className="text-2xl">📦</span>
+              <div className="p-2 md:p-3 bg-yellow-100 rounded-lg">
+                <span className="text-lg md:text-2xl">📦</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Productos</p>
-                <p className="text-2xl font-bold text-gray-900">{totalProducts}</p>
-                <p className="text-sm text-gray-500">Valor: ${totalStockValue.toFixed(2)}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Productos</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{totalProducts}</p>
+                <p className="text-xs md:text-sm text-gray-500">Valor: ${totalStockValue.toFixed(2)}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <span className="text-2xl">⚠️</span>
+              <div className="p-2 md:p-3 bg-red-100 rounded-lg">
+                <span className="text-lg md:text-2xl">⚠️</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Stock Bajo</p>
-                <p className="text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Stock Bajo</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <button
             onClick={() => onPageChange('users')}
             className="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-lg text-left transition-colors"

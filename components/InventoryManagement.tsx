@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
+import ValidationAlert from './ValidationAlert';
 
 interface Product {
   id: number;
@@ -57,6 +58,9 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
   });
   const [stockUpdate, setStockUpdate] = useState({ type: 'add', quantity: 0 });
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showAddValidationAlert, setShowAddValidationAlert] = useState(false);
+  const [showEditValidationAlert, setShowEditValidationAlert] = useState(false);
+  const [showStockValidationAlert, setShowStockValidationAlert] = useState(false);
 
   // Cargar productos desde Supabase
   useEffect(() => {
@@ -87,14 +91,50 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Función para validar formulario de agregar producto
+  const validateAddProductForm = (): boolean => {
+    const { nombre, precio, stock, categoria } = newProduct;
+    
+    if (!nombre || typeof nombre !== 'string' || !nombre.trim()) return false;
+    if (precio <= 0) return false;
+    if (stock < 0) return false;
+    if (!categoria || typeof categoria !== 'string' || !categoria.trim()) return false;
+    
+    return true;
+  };
+
+  // Función para validar formulario de editar producto
+  const validateEditProductForm = (): boolean => {
+    if (!editingProduct) return false;
+    
+    const { nombre, precio, stock, categoria } = editingProduct;
+    
+    if (!nombre || typeof nombre !== 'string' || !nombre.trim()) return false;
+    if (precio <= 0) return false;
+    if (stock < 0) return false;
+    if (!categoria || typeof categoria !== 'string' || !categoria.trim()) return false;
+    
+    return true;
+  };
+
+  // Función para validar formulario de actualizar stock
+  const validateStockForm = (): boolean => {
+    const { quantity } = stockUpdate;
+    
+    if (quantity <= 0) return false;
+    
+    return true;
+  };
+
   // Funciones para manejar productos
   const addProduct = async () => {
-    try {
-      if (!newProduct.nombre || !newProduct.categoria || newProduct.precio <= 0) {
-        showNotification('error', 'Por favor completa todos los campos correctamente');
-        return;
-      }
+    // Validar formulario antes de proceder
+    if (!validateAddProductForm()) {
+      setShowAddValidationAlert(true);
+      return;
+    }
 
+    try {
       const { data, error } = await supabase
         .from('productos')
         .insert([newProduct])
@@ -113,7 +153,13 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
   };
 
   const updateStock = async () => {
-    if (!selectedProduct || stockUpdate.quantity <= 0) return;
+    if (!selectedProduct) return;
+
+    // Validar formulario antes de proceder
+    if (!validateStockForm()) {
+      setShowStockValidationAlert(true);
+      return;
+    }
 
     try {
       const newStock = stockUpdate.type === 'add' 
@@ -148,6 +194,12 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
 
   const editProduct = async () => {
     if (!editingProduct) return;
+
+    // Validar formulario antes de proceder
+    if (!validateEditProductForm()) {
+      setShowEditValidationAlert(true);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -250,51 +302,51 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <span className="text-2xl">📦</span>
+              <div className="p-2 md:p-3 bg-blue-100 rounded-lg">
+                <span className="text-lg md:text-2xl">📦</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Productos</p>
-                <p className="text-2xl font-bold text-gray-900">{totalProducts}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Total Productos</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{totalProducts}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <span className="text-2xl">⚠️</span>
+              <div className="p-2 md:p-3 bg-yellow-100 rounded-lg">
+                <span className="text-lg md:text-2xl">⚠️</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Stock Bajo</p>
-                <p className="text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Stock Bajo</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <span className="text-2xl">❌</span>
+              <div className="p-2 md:p-3 bg-red-100 rounded-lg">
+                <span className="text-lg md:text-2xl">❌</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Sin Stock</p>
-                <p className="text-2xl font-bold text-gray-900">{outOfStockProducts.length}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Sin Stock</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">{outOfStockProducts.length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <span className="text-2xl">💰</span>
+              <div className="p-2 md:p-3 bg-green-100 rounded-lg">
+                <span className="text-lg md:text-2xl">💰</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Valor Total</p>
-                <p className="text-2xl font-bold text-gray-900">${totalStockValue.toFixed(2)}</p>
+              <div className="ml-2 md:ml-4">
+                <p className="text-xs md:text-sm text-gray-600">Valor Total</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-900">${totalStockValue.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -323,22 +375,22 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <input
                 type="text"
                 placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-2 md:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-auto p-2 md:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               >
                 <option value="all">Todas las categorías</option>
                 {allCategories.filter(cat => cat !== 'all').map(category => (
@@ -352,13 +404,13 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {filteredProducts.map(product => (
-            <div key={product.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.nombre}</h3>
-                  <p className="text-sm text-gray-500 capitalize">{product.categoria}</p>
+            <div key={product.id} className="bg-white rounded-lg shadow p-4 md:p-6 hover:shadow-lg transition-shadow">
+              <div className="flex justify-between items-start mb-3 md:mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1 truncate">{product.nombre}</h3>
+                  <p className="text-xs md:text-sm text-gray-500 capitalize">{product.categoria}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -366,7 +418,7 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                       setSelectedProduct(product);
                       setShowStockModal(true);
                     }}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 md:px-3 rounded text-xs font-semibold transition-colors"
                     title="Gestionar Stock"
                   >
                     📦
@@ -376,14 +428,14 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                       setEditingProduct({...product});
                       setShowEditProduct(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 md:px-3 rounded text-xs font-semibold transition-colors"
                     title="Editar Producto"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => deleteProduct(product.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 md:px-3 rounded text-xs font-semibold transition-colors"
                     title="Eliminar Producto"
                   >
                     🗑️
@@ -435,19 +487,32 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Agregar Nuevo Producto</h3>
+            
+            <ValidationAlert
+              show={showAddValidationAlert}
+              onClose={() => setShowAddValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Nombre del producto",
+                "Precio (mayor a $0)",
+                "Stock inicial (mayor o igual a 0)",
+                "Categoría"
+              ]}
+            />
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
               <input
                 type="text"
                   value={newProduct.nombre}
                   onChange={(e) => setNewProduct({...newProduct, nombre: e.target.value})}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Nombre del producto"
+                required
               />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio *</label>
               <input
                 type="number"
                   step="0.01"
@@ -459,10 +524,11 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                   }}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Inicial</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Inicial *</label>
               <input
                 type="number"
                   min="0"
@@ -473,14 +539,16 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                   }}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
               <select
                   value={newProduct.categoria}
                   onChange={(e) => setNewProduct({...newProduct, categoria: e.target.value})}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
                 >
                   <option value="">Selecciona una categoría</option>
                   {predefinedCategories.map(category => (
@@ -517,19 +585,32 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Editar Producto</h3>
+            
+            <ValidationAlert
+              show={showEditValidationAlert}
+              onClose={() => setShowEditValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Nombre del producto",
+                "Precio (mayor a $0)",
+                "Stock (mayor o igual a 0)",
+                "Categoría"
+              ]}
+            />
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
               <input
                 type="text"
                   value={editingProduct.nombre}
                   onChange={(e) => setEditingProduct({...editingProduct, nombre: e.target.value})}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Nombre del producto"
+                required
               />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio *</label>
               <input
                 type="number"
                   step="0.01"
@@ -541,14 +622,16 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                   }}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
               <select
                   value={editingProduct.categoria}
                   onChange={(e) => setEditingProduct({...editingProduct, categoria: e.target.value})}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
                 >
                   <option value="">Selecciona una categoría</option>
                   {predefinedCategories.map(category => (
@@ -593,6 +676,15 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Gestionar Stock - {selectedProduct.nombre}</h3>
+            
+            <ValidationAlert
+              show={showStockValidationAlert}
+              onClose={() => setShowStockValidationAlert(false)}
+              title="Campos Obligatorios Incompletos"
+              fields={[
+                "Cantidad (mayor a 0)"
+              ]}
+            />
             <div className="mb-4">
               <p className="text-sm text-gray-600">Stock actual: <span className="font-semibold">{selectedProduct.stock}</span></p>
             </div>
@@ -609,7 +701,7 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
                 <input
                   type="number"
                   min="1"
@@ -620,6 +712,7 @@ export default function InventoryManagement({ onPageChange }: InventoryManagemen
                   }}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Cantidad"
+                  required
                 />
               </div>
               {stockUpdate.type === 'subtract' && (
