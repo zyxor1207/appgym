@@ -795,6 +795,30 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Header con botón de volver */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={() => onPageChange('home')}
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span className="text-xs md:text-sm font-medium hidden sm:inline">Volver a la Página Principal</span>
+                <span className="text-xs md:text-sm font-medium sm:hidden">Volver</span>
+              </button>
+            </div>
+            <div className="flex items-center">
+              <span className="text-xl md:text-2xl mr-1 md:mr-2">💪</span>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900">Garage Fitness Club</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">

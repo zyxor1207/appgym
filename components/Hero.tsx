@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ClientOnly } from './lib/ClientOnly';
 
 export default function Hero() {
-  const [showMembershipModal, setShowMembershipModal] = useState(false);
   const [particles, setParticles] = useState<Array<{id: number, left: number, top: number, delay: number, duration: number}>>([]);
   const router = useRouter();
 
@@ -137,7 +136,7 @@ export default function Hero() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+          <div className="flex justify-center items-center">
             <button
               onClick={handleStartTraining}
               className="group relative bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-400 hover:via-blue-400 hover:to-purple-500 px-12 py-6 rounded-2xl text-xl font-bold transition-all transform hover:scale-105 shadow-2xl hover:shadow-cyan-500/25 border border-cyan-400/30 hover:border-cyan-300/50 animate-glow"
@@ -150,13 +149,6 @@ export default function Hero() {
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-600/20 rounded-2xl blur-xl animate-pulse-glow"></div>
               <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/30 to-purple-600/30 rounded-2xl blur opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-            
-            <button
-              onClick={() => setShowMembershipModal(true)}
-              className="group bg-transparent border-2 border-cyan-400 hover:bg-cyan-400/10 px-12 py-6 rounded-2xl text-xl font-semibold transition-all transform hover:scale-105 text-cyan-400 hover:text-white"
-            >
-              Ver Membresías
             </button>
           </div>
         </div>
@@ -175,154 +167,6 @@ export default function Hero() {
           <div className="w-10 h-10 border-2 border-cyan-400 rounded-full group-hover:scale-150 transition-transform duration-1000"></div>
         </div>
       </section>
-
-      {/* Membership Cards Modal */}
-      {showMembershipModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gradient-to-br from-gray-900 via-black to-gray-800 rounded-3xl p-8 w-full max-w-6xl mx-4 border border-cyan-400/30 shadow-2xl relative my-8">
-            {/* Background Effects */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-2xl"></div>
-              <div className="absolute bottom-10 right-10 w-40 h-40 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-2xl"></div>
-            </div>
-            
-            {/* Header */}
-            <div className="relative z-10 text-center mb-12">
-              <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-glow">
-                <span className="text-3xl">💪</span>
-              </div>
-              <h3 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4">
-                Membresías Garage Fitness Club
-              </h3>
-              <p className="text-xl text-gray-300">Elige el plan que mejor se adapte a tus objetivos</p>
-            </div>
-            
-            {/* Pricing Cards */}
-            <div className="relative z-10 grid md:grid-cols-3 gap-8 mb-8">
-              {/* Plan Día */}
-              <div className="group bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm rounded-2xl p-8 border border-gray-600/70 hover:border-cyan-400/70 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-2xl">☀️</span>
-                  </div>
-                  <h4 className="text-2xl font-bold text-white mb-2">Plan Día</h4>
-                  <p className="text-gray-400 mb-6">Acceso por un día completo</p>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">$50</span>
-                    <span className="text-gray-400 ml-2">MXN</span>
-                  </div>
-                  <ul className="text-left text-gray-300 space-y-2">
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
-                      Acceso completo al gimnasio
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
-                      Uso de todos los equipos
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
-                      Área de cardio y pesas
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Plan Semanal */}
-              <div className="group bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm rounded-2xl p-8 border border-gray-600/70 hover:border-blue-400/70 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 relative">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-full text-sm font-bold">
-                    MÁS POPULAR
-                  </span>
-                </div>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-2xl">📅</span>
-                  </div>
-                  <h4 className="text-2xl font-bold text-white mb-2">Plan Semanal</h4>
-                  <p className="text-gray-400 mb-6">Acceso por 7 días completos</p>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">$300</span>
-                    <span className="text-gray-400 ml-2">MXN</span>
-                    <div className="text-sm text-green-400 mt-1">Ahorra $50 vs plan día</div>
-                  </div>
-                  <ul className="text-left text-gray-300 space-y-2">
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                      Acceso completo al gimnasio
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                      Uso de todos los equipos
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                      Área de cardio y pesas
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                      Acceso a clases grupales
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Plan Mensual */}
-              <div className="group bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm rounded-2xl p-8 border border-gray-600/70 hover:border-purple-400/70 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-2xl">🏆</span>
-                  </div>
-                  <h4 className="text-2xl font-bold text-white mb-2">Plan Mensual</h4>
-                  <p className="text-gray-400 mb-6">Acceso por 30 días completos</p>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">$800</span>
-                    <span className="text-gray-400 ml-2">MXN</span>
-                    <div className="text-sm text-green-400 mt-1">Ahorra $700 vs plan día</div>
-                  </div>
-                  <ul className="text-left text-gray-300 space-y-2">
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                      Acceso completo al gimnasio
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                      Uso de todos los equipos
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                      Área de cardio y pesas
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                      Acceso a clases grupales
-                    </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                      Consulta nutricional incluida
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            {/* Back to Main Page Button */}
-            <div className="relative z-10 text-center mt-12">
-              <button
-                onClick={() => setShowMembershipModal(false)}
-                className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-400 hover:via-blue-400 hover:to-purple-500 px-16 py-6 rounded-2xl text-2xl font-bold transition-all transform hover:scale-105 text-white shadow-2xl hover:shadow-cyan-500/30 border-2 border-cyan-400/50 hover:border-cyan-300/70 animate-glow"
-              >
-                <span className="flex items-center justify-center">
-                  <svg className="mr-4 w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Volver a la Página Principal
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
