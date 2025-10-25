@@ -766,19 +766,29 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
   };
 
   const handleSearchKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const term = searchTerm.trim().toLowerCase();
+    console.log('Tecla presionada:', e.key);
     
-    if (!term) return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const term = searchTerm.trim();
+      console.log('Enter detectado, término:', term);
+      console.log('Usuarios filtrados disponibles:', filteredUsers.length);
+      
+      if (!term) {
+        console.log('No hay término de búsqueda');
+        return;
+      }
 
-    // Usar el primer resultado de la búsqueda filtrada (ya ordenado por relevancia)
-    if (filteredUsers.length > 0) {
-      const firstMatch = filteredUsers[0];
-      openMembershipOverlay(firstMatch);
-    } else {
-      // Si hay término de búsqueda pero no se encuentra nada
-      alert(`No se encontró ningún usuario con: "${term}"`);
+      if (filteredUsers.length > 0) {
+        const firstMatch = filteredUsers[0];
+        console.log('Seleccionando primer usuario:', firstMatch.name);
+        openMembershipOverlay(firstMatch);
+      } else {
+        console.log('No hay usuarios que coincidan');
+        alert(`No se encontró ningún usuario con: "${term}"`);
+      }
     }
   };
 
@@ -907,7 +917,7 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
               </div>
               {searchTerm.trim() && filteredUsers.length > 0 && (
                 <div className="mt-2 text-xs md:text-sm text-blue-600">
-                  💡 Presiona Enter para seleccionar el primer resultado (resaltado en azul)
+                  💡 Presiona Enter para seleccionar el primer resultado o haz click en cualquier fila
                 </div>
               )}
             </div>
@@ -963,7 +973,11 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                 {filteredUsers.map((user, index) => (
                   <tr 
                     key={user.id} 
-                    className={`hover:bg-gray-50 ${
+                    onClick={() => {
+                      console.log('Click en fila de usuario:', user.name);
+                      openMembershipOverlay(user);
+                    }}
+                    className={`hover:bg-gray-50 cursor-pointer transition-colors duration-200 ${
                       index === 0 && searchTerm.trim() 
                         ? 'bg-blue-50 border-l-4 border-blue-500' 
                         : ''
@@ -1003,7 +1017,9 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                       <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium">
                         <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('Click en botón Editar');
                               setEditingUser(user);
                               setEditingUserCustomPayment('');
                             }}
@@ -1012,13 +1028,21 @@ export default function UserManagement({ onPageChange, readOnly = false }: UserM
                             Editar
                           </button>
                           <button
-                            onClick={() => openRenewalForm(user.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('Click en botón Renovar');
+                              openRenewalForm(user.id);
+                            }}
                             className="text-purple-600 hover:text-purple-900 px-2 py-1 rounded text-xs"
                           >
                             Renovar
                           </button>
                           <button
-                            onClick={() => openDeleteConfirm(user.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('Click en botón Eliminar');
+                              openDeleteConfirm(user.id);
+                            }}
                             className="text-red-600 hover:text-red-900 px-2 py-1 rounded text-xs"
                           >
                             Eliminar
